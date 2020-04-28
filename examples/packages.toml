@@ -1,0 +1,18 @@
+# specify the packages to install with specific package managers
+# if multiple managers are listed the configs for the first applicable one will be used
+# applicability is based off of machine distrobuion:
+#     arch -> pacman
+#     ubuntu -> apt
+
+[manager]
+name = "pacman"
+upgrade_args = "-Syu"
+install_args = "-S --noconfirm"
+uninstall_args = "-Rncs"
+packages = ["firefox",
+    "fish",
+    "intellij-idea-community-edition",
+    "lsd",
+    "neofetch",
+    "nmap",
+    "git"]
