@@ -1,6 +1,6 @@
-use std::path::{Path, PathBuf};
+use std::path::{self, Path, PathBuf};
 use std::io::{Result as ioResult};
-use std::fs::File;
+use std::fs::{self, File};
 use tar::Builder;
 
 macro_rules! path_vec {
@@ -40,11 +40,12 @@ impl AppendSpecifier for Builder<File> {
         // add all paths to the archive builder
         for path in all_paths {
             let path_buf: PathBuf = path.into();
+            println!("{} => {}", path.to_tar_path().to_str().unwrap(), path_buf.to_str().unwrap());
 
             if path_buf.is_file() {
-                self.append_path_with_name(path_buf, path.path)?
+                self.append_path_with_name(path_buf, path.to_tar_path())?
             } else if path_buf.is_dir() {
-                self.append_dir_all(path.path, path_buf)?
+                self.append_dir_all(path.to_tar_path(), path_buf)?
             }
         }
 
@@ -63,21 +64,49 @@ pub enum PathKind {
 /// Intermediate type for adding the paths of a
 #[derive(Copy, Clone)]
 pub struct ArchivePath<'a> {
-    kind: PathKind,
+    pub kind: PathKind,
     pub path: &'a Path
 }
 
+impl ArchivePath<'_> {
+    /// Retrieve path for the files inside the tar archive.
+    pub fn to_tar_path(&self) -> PathBuf {
+        let mut path = PathBuf::new();
+
+        path.push(match self.kind {
+            PathKind::ABSOLUTE => "",
+            PathKind::HOME => "home",
+            PathKind::CONFIG => "config",
+        });
+
+        path.push(match self.kind {
+            PathKind::ABSOLUTE => {
+                match self.path.strip_prefix("/") {
+                    Ok(p) => return p.to_path_buf(),
+                    Err(_) => return self.path.to_path_buf()
+                }
+            },
+            _ => self.path
+        });
+
+
+        return path;
+    }
+}
+
 impl Into<PathBuf> for ArchivePath<'_> {
+    /// Converts an [ArchivePath](struct.ArchivePath.html) into the (PathBuf) which represents the
+    /// file's location on the local system.
     fn into(self) -> PathBuf {
-        let mut path= match &self.kind {
-            PathKind::ABSOLUTE => PathBuf::new(),
+        let mut path = match &self.kind {
+            PathKind::ABSOLUTE => self.path.to_path_buf(),
             PathKind::HOME => dirs::home_dir().unwrap(),
             PathKind::CONFIG => dirs::config_dir().unwrap()
         };
 
         path.push(self.path);
 
-        path
+        path.to_path_buf()
     }
 }
 
@@ -96,7 +125,7 @@ impl PathSpecifier {
     /// It should be noted that no error will be raised if an absolute path leads too the current
     /// users home or config directories; however, it would make far more sense to list those paths
     /// in the appropriate field.
-    pub fn get_paths(&self, kind: PathKind) -> Vec<&Path> {
+    fn get_paths(&self, kind: PathKind) -> Vec<&Path> {
         match kind {
             PathKind::ABSOLUTE => path_vec!(&self.absolute),
             PathKind::HOME => path_vec!(&self.home),
@@ -112,5 +141,27 @@ impl PathSpecifier {
             PathKind::HOME => archive_path_vec!(&self.home, PathKind::HOME),
             PathKind::CONFIG=> archive_path_vec!(&self.config, PathKind::CONFIG)
         }
+    }
+
+    pub fn install_paths(&self) -> Result<(), crate::configs::error::ConfigError> {
+        let mut all_paths = self.get_archiveable_paths(PathKind::ABSOLUTE);
+        all_paths.append(self.get_archiveable_paths(PathKind::HOME).as_mut());
+        all_paths.append(self.get_archiveable_paths(PathKind::CONFIG).as_mut());
+
+        for path in all_paths {
+            let archived_path: PathBuf = path.into();
+            let mut new_path = PathBuf::new();
+
+            // build the new path
+            match path.kind {
+                PathKind::ABSOLUTE => new_path.push(path::MAIN_SEPARATOR.to_string()),
+                PathKind::HOME => new_path.push(dirs::home_dir().unwrap()),
+                PathKind::CONFIG => new_path.push(dirs::config_dir().unwrap())
+            };
+
+            fs::rename(archived_path, new_path)?;
+        }
+
+        Ok(())
     }
 }

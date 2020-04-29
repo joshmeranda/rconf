@@ -2,11 +2,11 @@
 [path_specifier]
 
 # home refers to the home directory of the current user
-home = [".bashrc", ".cargo/config", ".gitconfig", ".nanorc"]
+home = [".bashrc", ".cargo/config"]
 
 # config refers to the user's config directory ($HOME/.config on linux)
-config = ["fish", "nano", "neofetch", "xfce4"]
+config = ["user-dirs.dirs"]
 
 # the absolute path of any other configuration files which do not reside
 # in either the home or default config diretory (ex /etc/gitconfig)
-absolute = []
+absolute = ["/etc/fish"]
