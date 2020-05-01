@@ -154,7 +154,7 @@ impl<'a> ArchivePath<'a> {
             _ => self.path,
         });
 
-        return path;
+        path
     }
 
     /// Retrieve the path on the local system corresponding to the

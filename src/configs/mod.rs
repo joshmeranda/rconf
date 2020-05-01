@@ -122,17 +122,10 @@ impl ConfigArchive {
                 Some(p) => p
             };
 
-            // determine the target destination for the archive entry
-            let dst = match path.kind {
-                PathKind::ABSOLUTE => {
-                    Path::new(&std::path::MAIN_SEPARATOR.to_string()).to_path_buf()
-                }
-                PathKind::HOME => try_dir!(dirs::home_dir, PathKind::HOME),
-                PathKind::CONFIG => try_dir!(dirs::config_dir, PathKind::CONFIG),
-            };
+            // retrieve the path's local location
+            let dst = path.to_local_path()?;
 
-            // catch errors unpacking the archive files
-            entry.unpack_in(&dst)?;
+            entry.unpack(dst)?;
         }
 
         Ok(())
