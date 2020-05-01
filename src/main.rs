@@ -7,7 +7,7 @@ extern crate serde_derive;
 extern crate toml;
 
 use clap::{crate_version, App, AppSettings, Arg, ArgMatches, SubCommand};
-use configs::{Configs, ConfigArchive, error::ConfigError};
+use configs::{error::ConfigError, ConfigArchive, Configs};
 use std::path::{Path, PathBuf};
 
 fn install(install_matches: &ArgMatches) -> Result<(), ConfigError> {
@@ -16,7 +16,6 @@ fn install(install_matches: &ArgMatches) -> Result<(), ConfigError> {
 
     archive_cfg.install()?;
     Ok(())
-//    unimplemented!();
 }
 
 /// Create a tar archive of existing system config files specified in the given toml file. Defaults
@@ -49,13 +48,13 @@ fn archive(archive_matches: &ArgMatches) -> Result<(), ConfigError> {
     // add the parent directory
     match archive_matches.value_of("destination") {
         Some(dst) => path.push(dst),
-        None => path = std::env::current_dir()?
+        None => path = std::env::current_dir()?,
     }
 
     // add the file name
     match archive_matches.value_of("title") {
         Some(title) => path.push(title),
-        None => path.push("rconf.tar")
+        None => path.push("rconf.tar"),
     }
 
     cfg.write_archive(path.as_path())?;
