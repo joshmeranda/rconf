@@ -78,7 +78,7 @@ impl AppendSpecifier for Builder<File> {
 
 /// Used to specify the type of path when retrieving the vectors from
 /// [ConfigPathSpecifier](struct.ConfigPathSpecifier.html).
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum PathKind {
     ABSOLUTE,
     HOME,
@@ -101,7 +101,7 @@ impl From<&Path> for PathKind {
 }
 
 /// Intermediate type for adding the paths of a
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct ArchivePath<'a> {
     pub kind: PathKind,
     pub path: &'a Path,
@@ -113,11 +113,6 @@ impl<'a> ArchivePath<'a> {
     pub fn from_tar_path(path: &'a Path) -> Option<ArchivePath<'a>> {
         if path.to_str().unwrap() == ".rconf" {
             None
-        } else if path.is_absolute() {
-            Some(ArchivePath {
-                kind: PathKind::ABSOLUTE,
-                path,
-            })
         } else if path.starts_with("home") {
             Some(ArchivePath {
                 kind: PathKind::HOME,
@@ -128,11 +123,14 @@ impl<'a> ArchivePath<'a> {
                 kind: PathKind::CONFIG,
                 path: path.strip_prefix("config").unwrap(),
             })
-        } else {
+        } else if path.is_relative() {
+            // absolute paths are stored in a relative path of the same name without the leading '/'
             Some(ArchivePath {
                 kind: PathKind::ABSOLUTE,
                 path,
             })
+        } else {
+            None
         }
     }
 
@@ -196,5 +194,80 @@ impl PathSpecifier {
             PathKind::HOME => archive_path_vec!(&self.home, PathKind::HOME),
             PathKind::CONFIG => archive_path_vec!(&self.config, PathKind::CONFIG),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ArchivePath, PathKind};
+    use std::path::Path;
+
+    #[test]
+    fn test_path_kind() {
+        assert_eq!(PathKind::ABSOLUTE, PathKind::from(Path::new("/etc/gitconfig")));
+        assert_eq!(PathKind::HOME, PathKind::from(Path::new("home/.bashrc")));
+        assert_eq!(PathKind::CONFIG, PathKind::from(Path::new("config/user-dirs.dirs")));
+    }
+
+    #[test]
+    fn test_from_tar_path_skip_rconf() {
+        assert!(ArchivePath::from_tar_path(Path::new(".rconf")).is_none());
+    }
+
+    #[test]
+    fn test_from_tar_path_absolute() {
+        let home = ArchivePath::from_tar_path(Path::new("etc/rconf"));
+        assert_eq!(ArchivePath {
+            kind: PathKind::ABSOLUTE,
+            path: Path::new("etc/rconf")
+        }, home.unwrap());
+    }
+
+    #[test]
+    fn test_from_tar_path_home() {
+        let home = ArchivePath::from_tar_path(Path::new("home/rconf"));
+        assert_eq!(ArchivePath {
+            kind: PathKind::HOME,
+            path: Path::new("rconf")
+        }, home.unwrap());
+    }
+
+    #[test]
+    fn test_from_tar_path_config() {
+        let config = ArchivePath::from_tar_path(Path::new("config/rconf"));
+        assert_eq!(ArchivePath {
+            kind: PathKind::CONFIG,
+            path: Path::new("rconf")
+        }, config.unwrap());
+    }
+
+    #[test]
+    fn test_to_tar_path_absolute() {
+        let absolute = ArchivePath {
+            kind: PathKind::ABSOLUTE,
+            path: Path::new("etc/rconf")
+        };
+
+        assert_eq!(Path::new("etc/rconf"), absolute.to_tar_path());
+    }
+
+    #[test]
+    fn test_to_tar_path_home() {
+        let home = ArchivePath {
+            kind: PathKind::HOME,
+            path: Path::new("rconf")
+        };
+
+        assert_eq!(Path::new("home/rconf"), home.to_tar_path());
+    }
+
+    #[test]
+    fn test_to_tar_path_config() {
+        let config = ArchivePath {
+            kind: PathKind::CONFIG,
+            path: Path::new("rconf")
+        };
+
+        assert_eq!(Path::new("config/rconf"), config.to_tar_path());
     }
 }

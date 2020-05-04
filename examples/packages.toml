@@ -8,7 +8,7 @@
 name = 'pacman'
 upgrade_args = ['-Syu']
 install_args = ['-S', '--noconfirm']
-uninstall_args = ['-Rncs']
+un_install_args = ['-Rncs']
 packages = ['firefox',
     'fish',
     'intellij-idea-community-edition',
