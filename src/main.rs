@@ -7,16 +7,8 @@ extern crate serde_derive;
 extern crate toml;
 
 use clap::{crate_version, App, AppSettings, Arg, ArgMatches, SubCommand};
-use configs::{error::ConfigError, ConfigArchive, Configs};
+use configs::{error::ConfigError, ConfigArchive};
 use std::path::{Path, PathBuf};
-
-fn install(install_matches: &ArgMatches) -> Result<(), ConfigError> {
-    let tar_path = Path::new(install_matches.value_of("archive").unwrap());
-    let mut archive_cfg = ConfigArchive::with_archive(tar_path)?;
-
-    archive_cfg.install()?;
-    Ok(())
-}
 
 /// Create a tar archive of existing system config files specified in the given toml file. Defaults
 /// to a '.rconf' file in the home directory.
@@ -40,7 +32,7 @@ fn archive(archive_matches: &ArgMatches) -> Result<(), ConfigError> {
     };
 
     // print error message and exit
-    let cfg = Configs::with_file(&path)?;
+    let cfg = ConfigArchive::with_file(&path)?;
 
     // determine the destination path
     let mut path = PathBuf::new();
@@ -62,10 +54,39 @@ fn archive(archive_matches: &ArgMatches) -> Result<(), ConfigError> {
     Ok(())
 }
 
+fn install(install_matches: &ArgMatches) -> Result<(), ConfigError> {
+    let tar_path = Path::new(install_matches.value_of("archive").unwrap());
+    let mut archive_cfg = ConfigArchive::with_archive(tar_path)?;
+
+    if install_matches.is_present("upgrade") {
+        let _status = match &archive_cfg.manager {
+            Some(manager) => manager.system_upgrade()?,
+            None => {
+                eprintln!("No manager specified");
+                return Ok(());
+            }
+        };
+    }
+
+    archive_cfg.install()?;
+
+    Ok(())
+}
+
+fn remove(remove_matches: &ArgMatches) -> Result<(), ConfigError> {
+    let tar_path = Path::new(remove_matches.value_of("archive").unwrap());
+    let mut archive_cfg = ConfigArchive::with_archive(tar_path)?;
+
+    archive_cfg.uninstall()?;
+
+    Ok(())
+}
+
 fn main() -> Result<(), ConfigError> {
     let matches = App::new("rconf")
         .about("backup and deploy configuration files.")
         .version(crate_version!())
+        // create an archive according to specifications contained in a file
         .subcommand(SubCommand::with_name("archive")
             .about("create an archive as specified by the config file.")
             .arg(Arg::with_name("config_file")
@@ -84,6 +105,7 @@ fn main() -> Result<(), ConfigError> {
                 .value_name("TITLE")
                 .help("the name without extension of the resulting archive"))
                 .setting(AppSettings::ArgRequiredElseHelp))
+        // install system configurations and packages
         .subcommand(SubCommand::with_name("install")
             .about("attempt to install configurations from a given archive")
             .arg(Arg::with_name("archive")
@@ -91,13 +113,27 @@ fn main() -> Result<(), ConfigError> {
                 .required(true)
                 .value_name("ARCHIVE")
                 .help("the path to the archive to be unpacked"))
+            .arg(Arg::with_name("upgrade")
+                .long("upgrade")
+                .takes_value(false)
+                .help("if available upgrade the system using the package manger before installing"))
                 .setting(AppSettings::ArgRequiredElseHelp))
+        // uninstall system configurations and packages
+        .subcommand(SubCommand::with_name("remove")
+            .about("attempt to install configurations from a given archive")
+            .arg(Arg::with_name("archive")
+                .hidden(true)
+                .required(true)
+                .value_name("ARCHIVE")
+                .help("the path to the archive to be unpacked"))
+            .setting(AppSettings::ArgRequiredElseHelp))
         .setting(AppSettings::SubcommandRequiredElseHelp)
         .get_matches();
 
     let result = match matches.subcommand_name() {
         Some("install") => install(matches.subcommand_matches("install").unwrap()),
         Some("archive") => archive(matches.subcommand_matches("archive").unwrap()),
+        Some("remove") => remove(matches.subcommand_matches("remove").unwrap()),
         _ => Ok(()), // unrecognized SubCommand handled ^^^ by get_matches
     };
 
