@@ -4,8 +4,8 @@ pub mod error;
 pub mod manager;
 
 use self::error::{ConfigError, Result};
-use self::path::*;
 use self::manager::*;
+use self::path::*;
 use serde_derive::{Deserialize, Serialize};
 use std::fs::{self, File};
 use std::io::Read;
@@ -19,7 +19,7 @@ pub struct ConfigArchive {
     pub manager: Option<Manager>,
 
     #[serde(skip)]
-    archive: Option<Archive<File>>
+    archive: Option<Archive<File>>,
 }
 
 impl ConfigArchive {
@@ -65,7 +65,7 @@ impl ConfigArchive {
                 let path = entry.path()?;
                 let path = match ArchivePath::from_tar_path(path.as_ref()) {
                     None => continue,
-                    Some(p) => p
+                    Some(p) => p,
                 };
 
                 // retrieve the path's local location
@@ -95,7 +95,7 @@ impl ConfigArchive {
                 let path = entry.path()?;
                 let path = match ArchivePath::from_tar_path(path.as_ref()) {
                     None => continue,
-                    Some(p) => p
+                    Some(p) => p,
                 };
 
                 let target = path.to_local_path()?;
@@ -108,7 +108,7 @@ impl ConfigArchive {
                     Ok(())
                 } {
                     Err(err) => return Err(ConfigError::from(err)),
-                    Ok(_) => ()
+                    Ok(_) => (),
                 }
             }
 
@@ -176,7 +176,7 @@ impl ConfigArchive {
     /// A [ConfigError](../error/enum.ConfigError.html) will be returned on an error installing the
     /// archived configurations.
     pub fn install(&mut self) -> Result<()> {
-        if let Some(manager) = &self.manager{
+        if let Some(manager) = &self.manager {
             manager.install_packages();
         }
 

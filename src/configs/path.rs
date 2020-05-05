@@ -85,9 +85,14 @@ pub enum PathKind {
     CONFIG,
 }
 
-impl From<&Path> for PathKind {
+impl<P> From<P> for PathKind
+where
+    P: AsRef<Path>,
+{
     /// Determine the path type from the path in relation to the archive.
-    fn from(path: &Path) -> PathKind {
+    fn from(path: P) -> PathKind {
+        let path = path.as_ref();
+
         if path.is_absolute() {
             PathKind::ABSOLUTE
         } else if path.starts_with("home") {
@@ -200,13 +205,14 @@ impl PathSpecifier {
 #[cfg(test)]
 mod tests {
     use super::{ArchivePath, PathKind};
+    use crate::configs::path::PathSpecifier;
     use std::path::Path;
 
     #[test]
     fn test_path_kind() {
-        assert_eq!(PathKind::ABSOLUTE, PathKind::from(Path::new("/etc/gitconfig")));
-        assert_eq!(PathKind::HOME, PathKind::from(Path::new("home/.bashrc")));
-        assert_eq!(PathKind::CONFIG, PathKind::from(Path::new("config/user-dirs.dirs")));
+        assert_eq!(PathKind::ABSOLUTE, PathKind::from("/etc/rconf"));
+        assert_eq!(PathKind::HOME, PathKind::from("home/rconf"));
+        assert_eq!(PathKind::CONFIG, PathKind::from("config/rconf"));
     }
 
     #[test]
@@ -217,35 +223,44 @@ mod tests {
     #[test]
     fn test_from_tar_path_absolute() {
         let home = ArchivePath::from_tar_path(Path::new("etc/rconf"));
-        assert_eq!(ArchivePath {
-            kind: PathKind::ABSOLUTE,
-            path: Path::new("etc/rconf")
-        }, home.unwrap());
+        assert_eq!(
+            ArchivePath {
+                kind: PathKind::ABSOLUTE,
+                path: Path::new("etc/rconf")
+            },
+            home.unwrap()
+        );
     }
 
     #[test]
     fn test_from_tar_path_home() {
         let home = ArchivePath::from_tar_path(Path::new("home/rconf"));
-        assert_eq!(ArchivePath {
-            kind: PathKind::HOME,
-            path: Path::new("rconf")
-        }, home.unwrap());
+        assert_eq!(
+            ArchivePath {
+                kind: PathKind::HOME,
+                path: Path::new("rconf")
+            },
+            home.unwrap()
+        );
     }
 
     #[test]
     fn test_from_tar_path_config() {
         let config = ArchivePath::from_tar_path(Path::new("config/rconf"));
-        assert_eq!(ArchivePath {
-            kind: PathKind::CONFIG,
-            path: Path::new("rconf")
-        }, config.unwrap());
+        assert_eq!(
+            ArchivePath {
+                kind: PathKind::CONFIG,
+                path: Path::new("rconf")
+            },
+            config.unwrap()
+        );
     }
 
     #[test]
     fn test_to_tar_path_absolute() {
         let absolute = ArchivePath {
             kind: PathKind::ABSOLUTE,
-            path: Path::new("etc/rconf")
+            path: Path::new("etc/rconf"),
         };
 
         assert_eq!(Path::new("etc/rconf"), absolute.to_tar_path());
@@ -255,7 +270,7 @@ mod tests {
     fn test_to_tar_path_home() {
         let home = ArchivePath {
             kind: PathKind::HOME,
-            path: Path::new("rconf")
+            path: Path::new("rconf"),
         };
 
         assert_eq!(Path::new("home/rconf"), home.to_tar_path());
@@ -265,9 +280,59 @@ mod tests {
     fn test_to_tar_path_config() {
         let config = ArchivePath {
             kind: PathKind::CONFIG,
-            path: Path::new("rconf")
+            path: Path::new("rconf"),
         };
 
         assert_eq!(Path::new("config/rconf"), config.to_tar_path());
+    }
+
+    #[test]
+    fn test_archiveable_paths() {
+        let specifier = PathSpecifier {
+            absolute: Some(vec!["/etc/rconf".to_string()]),
+            home: Some(vec!["rconf".to_string()]),
+            config: Some(vec!["rconf".to_string()]),
+        };
+
+        let expected_absolute = vec![ArchivePath {
+            kind: PathKind::ABSOLUTE,
+            path: Path::new("/etc/rconf"),
+        }];
+        let expected_home = vec![ArchivePath {
+            kind: PathKind::HOME,
+            path: Path::new("rconf"),
+        }];
+        let expected_config = vec![ArchivePath {
+            kind: PathKind::CONFIG,
+            path: Path::new("rconf"),
+        }];
+
+        assert_eq!(
+            expected_absolute,
+            specifier.get_archiveable_paths(PathKind::ABSOLUTE)
+        );
+        assert_eq!(
+            expected_home,
+            specifier.get_archiveable_paths(PathKind::HOME)
+        );
+        assert_eq!(
+            expected_config,
+            specifier.get_archiveable_paths(PathKind::CONFIG)
+        );
+    }
+
+    #[test]
+    fn test_empty_archiveable_paths() {
+        let specifier = PathSpecifier {
+            absolute: None,
+            home: None,
+            config: None,
+        };
+
+        assert!(specifier
+            .get_archiveable_paths(PathKind::ABSOLUTE)
+            .is_empty());
+        assert!(specifier.get_archiveable_paths(PathKind::HOME).is_empty());
+        assert!(specifier.get_archiveable_paths(PathKind::CONFIG).is_empty());
     }
 }

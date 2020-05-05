@@ -11,16 +11,22 @@ pub enum ConfigError {
     Io(ioError),
     Deserialize(deError),
     DirNotFound(String),
-    FieldNotFound(String)
+    FieldNotFound(String),
 }
 
 impl Display for ConfigError {
     fn fmt(&self, f: &mut Formatter) -> fmtResult {
         match self {
             ConfigError::Io(ref err) => write!(f, "An error occurred while handling file: {}", err),
-            ConfigError::Deserialize(ref err) => write!(f, "An error occurred while parsing file: {}", err),
+            ConfigError::Deserialize(ref err) => {
+                write!(f, "An error occurred while parsing file: {}", err)
+            }
             ConfigError::DirNotFound(s) => write!(f, "Could not determine system: {}", s),
-            ConfigError::FieldNotFound(s) => write!(f, "No value spefied for '{}' which is required by this operation", s)
+            ConfigError::FieldNotFound(s) => write!(
+                f,
+                "No value spefied for '{}' which is required by this operation",
+                s
+            ),
         }
     }
 }

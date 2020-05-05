@@ -1,5 +1,5 @@
-use std::process::{Command, ExitStatus};
 use crate::configs::error::{ConfigError, Result};
+use std::process::{Command, ExitStatus};
 
 /// Describes package manager commands to install and uninstall packages as well as upgrade the
 /// system.
@@ -21,8 +21,8 @@ impl Manager {
             .args(&self.packages)
             .spawn()
             .expect("Could not run the package manager with the given args")
-                .wait()
-                .expect("Issue waiting for the child installing process")
+            .wait()
+            .expect("Issue waiting for the child installing process")
     }
 
     /// Uninstall the packages specified using the  specified package manager.
