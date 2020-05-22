@@ -6,9 +6,9 @@ use std::process::{Command, ExitStatus};
 #[derive(Deserialize, Serialize)]
 pub struct Manager {
     /// The name of the package manager (pacman, yum, apt, etc)
-    name: String,
-    packages: Vec<String>,
-    install_args: Vec<String>,
+    pub name: String,
+    pub packages: Vec<String>,
+    pub install_args: Vec<String>,
     un_install_args: Option<Vec<String>>,
     upgrade_args: Option<Vec<String>>,
 }

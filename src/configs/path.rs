@@ -185,9 +185,9 @@ impl<'a> ArchivePath<'a> {
 #[derive(Deserialize, Serialize)]
 #[serde(rename(deserialize = ""))]
 pub struct PathSpecifier {
-    absolute: Option<Vec<String>>,
-    home: Option<Vec<String>>,
-    config: Option<Vec<String>>,
+    pub absolute: Option<Vec<String>>,
+    pub home: Option<Vec<String>>,
+    pub config: Option<Vec<String>>,
 }
 
 impl PathSpecifier {
