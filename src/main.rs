@@ -9,7 +9,6 @@ extern crate toml;
 
 use clap::{crate_version, App, AppSettings, Arg, ArgMatches, SubCommand};
 use configs::{error::ConfigError, ConfigArchive};
-use script::build_script;
 use std::path::{Path, PathBuf};
 
 /// Create a tar archive of existing system config files specified in the given toml file. Defaults
@@ -52,8 +51,6 @@ fn archive(archive_matches: &ArgMatches) -> Result<(), ConfigError> {
     }
 
     cfg.write_archive(path.as_path())?;
-
-    println!("{}", build_script(cfg));
 
     Ok(())
 }

@@ -11,6 +11,19 @@ use std::fs::{self, File};
 use std::io::Read;
 use std::path::Path;
 use tar::{Archive, Builder, Header};
+use super::script::build_script;
+
+/// Simple macro for generating a header for project files to be including in the configuration tar.
+macro_rules! basic_header {
+    ($data: expr) => {{
+        let mut header = Header::new_gnu();
+        header.set_size($data.len() as u64);
+        header.set_mode(420); // 644 (rw- r-- r--)
+        header.set_cksum();
+
+        header
+    }};
+}
 
 /// A container struct for a [ConfigArchive](struct.ConfigArchive.html) and the archive which describes it.
 #[derive(Deserialize, Serialize)]
@@ -153,14 +166,14 @@ impl ConfigArchive {
         let file = File::create(path)?;
         let mut builder = Builder::new(file);
 
-        // append the the data from this configuration struct
+        // generate content and header for rconf file
         let content = toml::to_string_pretty(self).unwrap();
-        let path = Path::new(".rconf");
-        let mut header = Header::new_gnu();
-        header.set_size(content.len() as u64);
-        header.set_cksum();
+        let script = build_script(self);
 
-        builder.append_data(&mut header, path, content.as_bytes())?;
+        builder.append_data(&mut basic_header!(content), Path::new(".rconf"),
+                            content.as_bytes())?;
+        builder.append_data(&mut basic_header!(script), Path::new("install.sh"),
+                            script.as_bytes())?;
 
         // add the files from the specifier into the archive
         if self.path_specifier.is_some() {

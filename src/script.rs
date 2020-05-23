@@ -1,10 +1,10 @@
 use super::configs::ConfigArchive;
 
 /// Generate the content for an installer script to operate on an unpacked rconf tar.
-pub fn build_script(cfg: ConfigArchive) -> String {
+pub fn build_script(cfg: &ConfigArchive) -> String {
     let mut script = String::from("#!/usr/bin/env bash\n");
 
-    if let Some(specifier) = cfg.path_specifier {
+    if let Some(specifier) = &cfg.path_specifier {
         if specifier.home.is_some() {
             script.push_str(
                 "if [ -d home ];then
@@ -29,7 +29,7 @@ done")
         }
     }
 
-    if let Some(manager) = cfg.manager {
+    if let Some(manager) = &cfg.manager {
         script.push_str(
             format!(
                 "{} {} {}",
