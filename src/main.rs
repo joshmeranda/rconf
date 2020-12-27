@@ -44,11 +44,18 @@ fn archive(archive_matches: &ArgMatches) -> Result<(), ConfigError> {
         None => path = std::env::current_dir()?,
     }
 
-    // add the file name
-    match archive_matches.value_of("title") {
-        Some(title) => path.push(title),
-        None => path.push("rconf.tar"),
+    // add the '.tar' extension if necessary to the given archive name
+    let mut title = String::from(match archive_matches.value_of("title") {
+        Some(title) => title,
+        None => "rconf.tar",
+    });
+
+    if ! title.ends_with(".tar") {
+        title.push_str(".tar");
     }
+
+    // add tile to the given path
+    path.push(title);
 
     cfg.write_archive(path.as_path())?;
 
@@ -101,10 +108,10 @@ fn main() -> Result<(), ConfigError> {
                 .value_name("DIR")
                 .help("the parent directory in which to store the resulting archive (defaults to the current working directory)"))
             .arg(Arg::with_name("title")
-                 .hidden(true)
+                 // .hidden(true)
                 .required(true)
                 .value_name("TITLE")
-                .help("the name without extension of the resulting archive"))
+                .help("the name of the resulting archive, if the .tar extension is missig it will be added"))
                 .setting(AppSettings::ArgRequiredElseHelp))
         // install system configurations and packages
         .subcommand(SubCommand::with_name("install")
