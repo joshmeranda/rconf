@@ -28,7 +28,7 @@ macro_rules! basic_header {
 /// A container struct for a [ConfigArchive](struct.ConfigArchive.html) and the archive which describes it.
 #[derive(Deserialize, Serialize)]
 pub struct ConfigArchive {
-    pub path_specifier: Option<PathSpecifier>,
+    pub paths: Option<PathSpecifier>,
     pub manager: Option<Manager>,
 
     #[serde(skip)]
@@ -176,8 +176,8 @@ impl ConfigArchive {
                             script.as_bytes())?;
 
         // add the files from the specifier into the archive
-        if self.path_specifier.is_some() {
-            builder.append_path_specifier(self.path_specifier.as_ref().unwrap())?;
+        if self.paths.is_some() {
+            builder.append_path_specifier(self.paths.as_ref().unwrap())?;
         }
 
         Ok(builder.into_inner()?)

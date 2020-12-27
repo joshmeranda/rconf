@@ -121,7 +121,7 @@ fn main() -> Result<(), ConfigError> {
                 .setting(AppSettings::ArgRequiredElseHelp))
         // uninstall system configurations and packages
         .subcommand(SubCommand::with_name("remove")
-            .about("attempt to install configurations from a given archive")
+            .about("attempt to uninstall configurations from a given archive")
             .arg(Arg::with_name("archive")
                 .hidden(true)
                 .required(true)

@@ -1,11 +1,9 @@
 # specify the packages to install and how to install them
-
-[manager]
-name = 'pacman'
-upgrade_args = ['-Syu']
-install_args = ['-S', '--noconfirm']
-un_install_args = ['-Rncs']
-packages = ['firefox',
+manager.name = 'pacman'
+manager.upgrade_args = ['-Syu']
+manager.install_args = ['-S', '--noconfirm']
+manager.un_install_args = ['-Rncs']
+manager.packages = ['firefox',
     'fish',
     'intellij-idea-community-edition',
     'lsd',
