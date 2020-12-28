@@ -12,6 +12,7 @@ pub enum ConfigError {
     Deserialize(deError),
     DirNotFound(String),
     FieldNotFound(String),
+    Manager(String, Vec<String>)
 }
 
 impl Display for ConfigError {
@@ -27,6 +28,7 @@ impl Display for ConfigError {
                 "No value spefied for '{}' which is required by this operation",
                 s
             ),
+            ConfigError::Manager(cmd, args) => write!(f, "An error ocurred running '{} {}'", cmd, args.join(" "))
         }
     }
 }

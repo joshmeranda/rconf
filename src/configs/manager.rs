@@ -51,7 +51,9 @@ impl Manager {
                 .wait()
                 .expect("Issue waiting for the child installing process"))
         } else {
-            Err(ConfigError::FieldNotFound("upgrade_args".to_string()))
+            Err(ConfigError::FieldNotFound(
+                "manager.upgrade_args".to_string(),
+            ))
         }
     }
 }

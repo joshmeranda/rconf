@@ -6,12 +6,12 @@ pub mod manager;
 use self::error::{ConfigError, Result};
 use self::manager::*;
 use self::path::*;
+use super::script::build_script;
 use serde_derive::{Deserialize, Serialize};
 use std::fs::{self, File};
 use std::io::Read;
 use std::path::Path;
 use tar::{Archive, Builder, Header};
-use super::script::build_script;
 
 /// Simple macro for generating a header for project files to be including in the configuration tar.
 macro_rules! basic_header {
@@ -29,6 +29,7 @@ macro_rules! basic_header {
 #[derive(Deserialize, Serialize)]
 pub struct ConfigArchive {
     pub paths: Option<PathSpecifier>,
+
     pub manager: Option<Manager>,
 
     #[serde(skip)]
@@ -170,10 +171,16 @@ impl ConfigArchive {
         let content = toml::to_string_pretty(self).unwrap();
         let script = build_script(self);
 
-        builder.append_data(&mut basic_header!(content), Path::new(".rconf"),
-                            content.as_bytes())?;
-        builder.append_data(&mut basic_header!(script), Path::new("install.sh"),
-                            script.as_bytes())?;
+        builder.append_data(
+            &mut basic_header!(content),
+            Path::new(".rconf"),
+            content.as_bytes(),
+        )?;
+        builder.append_data(
+            &mut basic_header!(script),
+            Path::new("install.sh"),
+            script.as_bytes(),
+        )?;
 
         // add the files from the specifier into the archive
         if self.paths.is_some() {
@@ -190,7 +197,14 @@ impl ConfigArchive {
     /// archived configurations.
     pub fn install(&mut self) -> Result<()> {
         if let Some(manager) = &self.manager {
-            manager.install_packages();
+            let status = manager.install_packages();
+
+            if !status.success() {
+                return Err(ConfigError::Manager(
+                    manager.name.clone(),
+                    manager.install_args.clone(),
+                ));
+            }
         }
 
         self.install_configs()?;
@@ -205,7 +219,9 @@ impl ConfigArchive {
     /// the archived configurations.
     pub fn uninstall(&mut self) -> Result<()> {
         if let Some(manager) = &self.manager {
-            manager.un_install_packages()?;
+            if let Err(err) = manager.un_install_packages() {
+                return Err(err);
+            }
         }
 
         self.uninstall_configs()?;

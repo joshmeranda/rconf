@@ -9,7 +9,7 @@ value pair in the following sections.
 The configuration is done using the [TOML](https://toml.io/) format and all entries must follow the specification.
 
 ### Paths
-Specifies the paths to store in the archive.
+Specifies the paths to store in the archive. All or none of these may be specified without error.
 
 | name | type | purpose |
 | ---- | ---- | ------- |
@@ -19,7 +19,9 @@ Specifies the paths to store in the archive.
 
 ### Manager
 Specifies the name of the package manager as well as a the command line arguments  to pass to the package manager when
-installing, upgrading, and uninstalling packages.
+installing, upgrading, and uninstalling packages. If any of these keys are included, the keys `manager.name`,
+`manager.install_args`, and `manager.packages` must also be specified even if they are empty. If the package manager
+fails the user will be warned and shown the command which was run.
 
 | name | type | purpose |
 | ---- | ---- | ------- |

@@ -50,7 +50,7 @@ fn archive(archive_matches: &ArgMatches) -> Result<(), ConfigError> {
         None => "rconf.tar",
     });
 
-    if ! title.ends_with(".tar") {
+    if !title.ends_with(".tar") {
         title.push_str(".tar");
     }
 
@@ -67,27 +67,30 @@ fn install(install_matches: &ArgMatches) -> Result<(), ConfigError> {
     let mut archive_cfg = ConfigArchive::with_archive(tar_path)?;
 
     if install_matches.is_present("upgrade") {
-        let _status = match &archive_cfg.manager {
-            Some(manager) => manager.system_upgrade()?,
-            None => {
-                eprintln!("No manager specified");
-                return Ok(());
+        let is_upgraded: Result<(), ConfigError> = match &archive_cfg.manager {
+            Some(manager) => {
+                if let Err(err) = manager.system_upgrade() {
+                    Err(err)
+                } else {
+                    Ok(())
+                }
             }
+            None => Err(ConfigError::FieldNotFound(String::from("manager"))),
         };
+
+        if let Err(err) = is_upgraded {
+            return Err(err);
+        }
     }
 
-    archive_cfg.install()?;
-
-    Ok(())
+    archive_cfg.install()
 }
 
 fn remove(remove_matches: &ArgMatches) -> Result<(), ConfigError> {
     let tar_path = Path::new(remove_matches.value_of("archive").unwrap());
     let mut archive_cfg = ConfigArchive::with_archive(tar_path)?;
 
-    archive_cfg.uninstall()?;
-
-    Ok(())
+    archive_cfg.uninstall()
 }
 
 fn main() -> Result<(), ConfigError> {
@@ -149,7 +152,7 @@ fn main() -> Result<(), ConfigError> {
     match result {
         Ok(_) => Ok(()),
         Err(err) => {
-            eprintln!("{}", err);
+            eprintln!("{}", err.to_string());
             std::process::exit(1);
         }
     }
